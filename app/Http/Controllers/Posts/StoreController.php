@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Posts;
 
 use App\Http\Requests\Posts\StoreRequest;
+use App\Http\Resources\ErrorResource;
 use App\Http\Resources\Post\PostResource;
 use App\Models\Post;
 use Illuminate\Http\Request;
@@ -14,15 +15,19 @@ class StoreController extends BaseController
      */
     public function __invoke(StoreRequest $request)
     {
-        $data = $request->validated();
+        try {
 
-        $post = $this->service->store($data);
+            $data = $request->validated();
 
-        if ($post instanceof Post) {
+            $post = $this->service->store($data);
+
             return new PostResource($post);
-        }
 
-        return $post;
+        } catch (\UnexpectedValueException $e) {
+
+            return new ErrorResource($e);
+
+        }
 //        return to_route('posts.index');
     }
 }

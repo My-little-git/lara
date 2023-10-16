@@ -11,13 +11,14 @@ use Illuminate\Support\Facades\DB;
 
 class Service
 {
-    public function store($data)
+    public function store($data): Post
     {
         try {
+
             DB::beginTransaction();
 
-            $data['category_id'] = $this->getIdByName(Category::class, $data['category']);
-            $tagIds = $this->getIdByName(Tag::class, $data['tags']);
+            $data['category_id'] = $this->getCategoryId($data['category']);
+            $tagIds = $this->getTagIds($data['tags']);
 
             unset($data['tags'], $data['category']);
 
@@ -26,22 +27,24 @@ class Service
             $post->tags()->attach($tagIds);
 
             DB::commit();
-        } catch (Exception $exception) {
+
+        } catch (\UnexpectedValueException $e) {
+
             DB::rollBack();
-            dd($exception->getMessage());
+            throw new \UnexpectedValueException($e->getMessage());
+
         }
 
         return $post;
     }
 
-    public function update($post, $data)
+    public function update($post, $data): Post
     {
         try {
             DB::beginTransaction();
 
-
-            $data['category_id'] = $this->getIdByName(Category::class, $data['category']);
-            $tagIds = $this->getIdByName(Tag::class, $data['tags']);
+            $data['category_id'] = $this->getCategoryId($data['category']);
+            $tagIds = $this->getTagIds($data['tags']);
 
             unset($data['tags'], $data['category']);
 
@@ -49,31 +52,39 @@ class Service
             $post->tags()->sync($tagIds);
 
             DB::commit();
-        } catch (\Exception $exception) {
+        } catch (\UnexpectedValueException $e) {
             DB::rollBack();
-            return $exception->getMessage();
+            throw new \UnexpectedValueException($e->getMessage());
         }
 
         return $post->fresh();
     }
 
-    private function getIdByName(string $model, object|array $data): int|array
+    private function getCategoryId(array $data): int
     {
-        if (array_is_list($data)) {
-            $dataIds = [];
+        $category = Category::firstOrCreate(['name' => $data['name']], $data);
 
-            foreach ($data as $item) {
-                $dataIds[] = $model::firstOrCreate(['name' => $item['name']], $item)->id;
-            }
-            return $dataIds;
+        if ($category->wasRecentlyCreated || (isset($data['id']) && $category->id === $data['id'])) {
+            return $category->id;
         }
 
-        if (is_array($data)) {
-            return $model::firstOrCreate(['name' => $data['name']], $data)->id;
-        }
-
-        throw new \InvalidArgumentException;
+        throw new \UnexpectedValueException('No category was found with these credentials');
     }
 
+    private function getTagIds(array $data): array
+    {
+        $tagIds = [];
 
+        foreach ($data as $item) {
+            $tag = Tag::firstOrCreate(['name' => $item['name']], $item);
+
+            if (!($tag->wasRecentlyCreated || (isset($item['id']) && $tag->id === $item['id']))) {
+                throw new \UnexpectedValueException('No tag was found with these credentials');
+            }
+
+            $tagIds[] = $tag->id;
+        }
+
+        return $tagIds;
+    }
 }

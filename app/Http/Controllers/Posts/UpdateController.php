@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Posts;
 
 use App\Http\Requests\Posts\UpdateRequest;
+use App\Http\Resources\ErrorResource;
 use App\Http\Resources\Post\PostResource;
 use App\Models\Post;
 use Illuminate\Http\Request;
@@ -14,11 +15,19 @@ class UpdateController extends BaseController
      */
     public function __invoke(Post $post, UpdateRequest $request)
     {
-        $data = $request->validated();
+        try {
 
-        $post = $this->service->update($post, $data);
+            $data = $request->validated();
 
-        return new PostResource($post);
+            $post = $this->service->update($post, $data);
+
+            return new PostResource($post);
+
+        } catch (\UnexpectedValueException $e) {
+
+            return new ErrorResource($e);
+
+        }
 
 //        return to_route('posts.show', $post->id);
     }

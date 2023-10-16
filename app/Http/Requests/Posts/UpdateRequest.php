@@ -25,10 +25,12 @@ class UpdateRequest extends FormRequest
             'title' => ['required', 'string'],
             'content' => ['required', 'string'],
             'image' => ['required', 'string'],
-            'category' => ['required'],
-            'category.id' => ['integer'],
+            'category' => ['required', 'array'],
+            'category.id' => ['integer', 'exists:categories,id'],
             'category.name' => ['required', 'string'],
             'tags' => ['array'],
+            'tags.*.id' => ['integer', 'exists:tags,id'],
+            'tags.*.name' => ['string'],
         ];
     }
 }

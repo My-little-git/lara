@@ -7,7 +7,7 @@ use App\Services\Posts\Service;
 
 class BaseController extends Controller
 {
-    public $service;
+    public Service $service;
 
     public function __construct(Service $service)
     {
